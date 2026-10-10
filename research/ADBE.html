@@ -1,0 +1,497 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Growth regime</title>
+<style>
+:root {
+  color-scheme: light;
+  --page: #f9f9f7; --surface: #fcfcfb; --ink: #0b0b0b; --ink2: #52514e; --muted: #898781;
+  --grid: #e1e0d9; --axis: #c3c2b7; --border: rgba(11,11,11,0.10); --band: rgba(137,135,129,0.20);
+  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    color-scheme: dark;
+    --page: #0d0d0d; --surface: #1a1a19; --ink: #ffffff; --ink2: #c3c2b7; --muted: #898781;
+    --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10); --band: rgba(137,135,129,0.24);
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0d0d0d; --surface: #1a1a19; --ink: #ffffff; --ink2: #c3c2b7; --muted: #898781;
+  --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10); --band: rgba(137,135,129,0.24);
+  --s1: #3987e5; --s2: #d95926; --s3: #199e70;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--page); color: var(--ink); font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+main { max-width: 1040px; margin: 0 auto; padding: 32px 16px 64px; }
+.who { display: flex; align-items: center; gap: 10px; font-size: 20px; line-height: 1.2; margin: 0 0 12px; }
+.who img { height: 28px; width: auto; max-width: 120px; display: block; }
+.who .name { font-weight: 600; }
+.who .chip { font-weight: 600; font-size: 12.5px; letter-spacing: 0.04em; padding: 2px 7px; border-radius: 6px; background: var(--ink); color: var(--surface); }
+.who .topic { color: var(--ink2); font-size: 15px; }
+.who .asof { margin-left: auto; color: var(--muted); font-size: 12px; white-space: nowrap; }
+.who.top { font-size: 22px; margin: 0; } .who.top img { height: 32px; max-width: 140px; } .who.top .chip { font-size: 13px; }
+.bar { display: flex; align-items: center; gap: 16px; margin-bottom: 10px; }
+.lang { margin-left: auto; display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; flex: none; }
+.lang button { font: inherit; font-size: 12.5px; font-weight: 600; padding: 5px 11px; border: 0; background: var(--surface); color: var(--ink2); cursor: pointer; }
+.lang button[aria-pressed="true"] { background: var(--ink); color: var(--surface); }
+.lang button:focus-visible { outline: 2px solid var(--s1); outline-offset: -2px; }
+[hidden] { display: none !important; }
+.src { color: var(--muted); font-size: 12px; margin: 6px 0 0; }
+.tile .note + .note { margin-top: 4px; }
+.headline { font-size: 24px; line-height: 1.3; font-weight: 600; margin: 0 0 24px; max-width: 34em; text-wrap: balance; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-bottom: 24px; }
+.tile, .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; }
+.tile { padding: 14px 16px; }
+.tile .label { color: var(--ink2); font-size: 12.5px; }
+.tile .value { font-size: 26px; font-weight: 600; margin: 2px 0 4px; }
+.tile .note { color: var(--ink2); font-size: 12.5px; line-height: 1.4; }
+.card { padding: 20px 20px 14px; margin-bottom: 16px; }
+h2 { font-size: 16px; font-weight: 600; margin: 0 0 2px; }
+.sub { color: var(--ink2); margin: 0 0 12px; max-width: 62em; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; color: var(--ink2); font-size: 12.5px; margin-bottom: 4px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend svg { flex: none; }
+svg.chart { display: block; width: 100%; height: auto; overflow: visible; }
+svg text { font: 11.5px system-ui, -apple-system, "Segoe UI", sans-serif; fill: var(--muted); font-variant-numeric: tabular-nums; }
+svg text.strong { fill: var(--ink); font-weight: 600; }
+svg text.note { fill: var(--ink2); }
+details { margin-top: 8px; color: var(--ink2); font-size: 12.5px; }
+summary { cursor: pointer; width: max-content; }
+.scroll { overflow-x: auto; }
+table { border-collapse: collapse; margin-top: 8px; font-variant-numeric: tabular-nums; font-size: 12.5px; }
+th, td { text-align: right; padding: 3px 12px 3px 0; white-space: nowrap; border-bottom: 1px solid var(--grid); }
+th { font-weight: 600; color: var(--ink2); } th:first-child, td:first-child { text-align: left; }
+td.refused { text-align: left; color: var(--ink2); }
+.callout { border-left: 2px solid var(--axis); padding: 2px 0 2px 12px; margin: 12px 0 4px; color: var(--ink2); max-width: 62em; }
+.foot { color: var(--ink2); font-size: 12.5px; max-width: 70em; } .foot li { margin-bottom: 4px; } .foot ul { padding-left: 18px; }
+#tip { position: fixed; pointer-events: none; background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12); padding: 8px 10px; font-size: 12.5px; min-width: 150px; display: none; z-index: 5; }
+#tip .head { color: var(--ink2); margin-bottom: 4px; }
+#tip .row { display: flex; align-items: center; gap: 8px; } #tip .row b { font-weight: 600; margin-left: auto; padding-left: 12px; }
+#tip .key { width: 12px; height: 0; border-top: 2px solid var(--muted); flex: none; }
+#tip .more { color: var(--ink2); margin-top: 4px; }
+</style>
+</head>
+<body>
+<main>
+  <div class="bar">
+    <div class="who top" id="who"></div>
+    <div class="lang" role="group" aria-label="Language / Мова">
+      <button type="button" data-lang="en">EN</button><button type="button" data-lang="uk">УКР</button>
+    </div>
+  </div>
+  <p class="headline" id="headline"></p>
+  <div class="tiles" id="tiles"></div>
+
+  <section class="card" data-card="rev">
+    <h2></h2><p class="sub"></p>
+    <div class="legend" id="lg-rev"></div>
+    <div id="c-rev"></div>
+    <details><summary></summary><div class="scroll" id="t-rev"></div></details>
+  </section>
+
+  <section class="card" data-card="eps">
+    <h2></h2><p class="sub"></p>
+    <div class="legend" id="lg-eps"></div>
+    <div id="c-eps"></div>
+    <p class="callout" id="naive"></p>
+    <details><summary></summary><div class="scroll" id="t-eps"></div></details>
+  </section>
+
+  <section class="card" data-card="drv">
+    <h2></h2><p class="sub"></p>
+    <div class="legend" id="lg-drv"></div>
+    <div id="c-drv"></div>
+    <details><summary></summary><div class="scroll" id="t-drv"></div></details>
+  </section>
+
+  <section class="card" data-card="rvn">
+    <h2></h2><p class="sub"></p>
+    <div class="scroll" id="t-rvn"></div>
+  </section>
+
+  <div class="foot" id="foot"></div>
+</main>
+<div id="tip"></div>
+<script>
+const D = {"ticker": "ADBE", "name": "Adobe Inc.", "logo": null, "text": {"en": {"headline": "Reported revenue growth is in a ramp-up at 12.9%. Consensus has it falling to 9.4% over the next four quarters and below the expected range by Q2 FY27.", "tiles": [{"label": "Revenue growth, Q3 FY26 reported", "value": "12.9%", "note": ["\u25b2 ramp-up: outside the expected 9.1\u201312.3% since Q2 FY26"]}, {"label": "Revenue growth, consensus, next four quarters", "value": "9.4%", "note": ["\u22123.5 points against Q3 FY26 (12.9%): consensus is below it from Q4 FY26", "\u25bc slowdown called from Q2 FY27 (15 analysts): outside 9.3\u201312.5% for 2 periods or more"]}, {"label": "EPS growth (GAAP), consensus FY26\u2192FY27\u2192FY28", "value": "9% \u00b7 18% \u00b7 14%", "note": ["margin moved EPS by \u221229 to +44 points a year since FY16, revenue by +10 to +22: the rule is read on revenue"]}, {"label": "EPS estimate revisions, 90 days", "value": "+0.2% \u00b7 +0.5%", "note": ["FY26, FY27: estimates are not moving"]}], "notes": ["The forecast page's FY25 EPS is +0.0% from the filings' (16.70 against 16.70): the page is on the GAAP basis."]}, "uk": {"headline": "\u0424\u0430\u043a\u0442\u0438\u0447\u043d\u0435 \u0437\u0440\u043e\u0441\u0442\u0430\u043d\u043d\u044f \u0432\u0438\u0440\u0443\u0447\u043a\u0438 \u043f\u0440\u0438\u0441\u043a\u043e\u0440\u0438\u043b\u043e\u0441\u044f \u0434\u043e 12,9%. \u041a\u043e\u043d\u0441\u0435\u043d\u0441\u0443\u0441 \u043e\u0447\u0456\u043a\u0443\u0454 \u0441\u043f\u043e\u0432\u0456\u043b\u044c\u043d\u0435\u043d\u043d\u044f \u0434\u043e 9,4% \u0437\u0430 \u043d\u0430\u0441\u0442\u0443\u043f\u043d\u0456 \u0447\u043e\u0442\u0438\u0440\u0438 \u043a\u0432\u0430\u0440\u0442\u0430\u043b\u0438 \u0456 \u0432\u0438\u0445\u0456\u0434 \u043d\u0438\u0436\u0447\u0435 \u043e\u0447\u0456\u043a\u0443\u0432\u0430\u043d\u043e\u0433\u043e \u0434\u0456\u0430\u043f\u0430\u0437\u043e\u043d\u0443 \u0437 Q2 FY27.", "tiles": [{"label": "\u0417\u0440\u043e\u0441\u0442\u0430\u043d\u043d\u044f \u0432\u0438\u0440\u0443\u0447\u043a\u0438, Q3 FY26, \u0444\u0430\u043a\u0442", "value": "12,9%", "note": ["\u25b2 \u043f\u0440\u0438\u0441\u043a\u043e\u0440\u0435\u043d\u043d\u044f: \u043f\u043e\u0437\u0430 \u043e\u0447\u0456\u043a\u0443\u0432\u0430\u043d\u0438\u043c \u0434\u0456\u0430\u043f\u0430\u0437\u043e\u043d\u043e\u043c 9,1\u201312,3% \u0437 Q2 FY26"]}, {"label": "\u0417\u0440\u043e\u0441\u0442\u0430\u043d\u043d\u044f \u0432\u0438\u0440\u0443\u0447\u043a\u0438, \u043a\u043e\u043d\u0441\u0435\u043d\u0441\u0443\u0441, \u043d\u0430\u0441\u0442\u0443\u043f\u043d\u0456 \u0447\u043e\u0442\u0438\u0440\u0438 \u043a\u0432\u0430\u0440\u0442\u0430\u043b\u0438", "value": "9,4%", "note": ["\u22123,5 \u0432.\u043f. \u043f\u0440\u043e\u0442\u0438 Q3 FY26 (12,9%): \u043a\u043e\u043d\u0441\u0435\u043d\u0441\u0443\u0441 \u043d\u0438\u0436\u0447\u0435 \u0437\u0430 \u043d\u044c\u043e\u0433\u043e \u0437 Q4 FY26", "\u25bc \u043a\u043e\u043d\u0441\u0435\u043d\u0441\u0443\u0441 \u0437\u0430\u043a\u043b\u0430\u0434\u0430\u0454 \u0441\u043f\u043e\u0432\u0456\u043b\u044c\u043d\u0435\u043d\u043d\u044f \u0437 Q2 FY27 (15 \u0430\u043d\u0430\u043b\u0456\u0442\u0438\u043a\u0456\u0432): \u043f\u043e\u0437\u0430 \u0434\u0456\u0430\u043f\u0430\u0437\u043e\u043d\u043e\u043c 9,3\u201312,5% \u0449\u043e\u043d\u0430\u0439\u043c\u0435\u043d\u0448\u0435 2 \u043f\u0435\u0440\u0456\u043e\u0434\u0438 \u043f\u043e\u0441\u043f\u0456\u043b\u044c"]}, {"label": "\u0417\u0440\u043e\u0441\u0442\u0430\u043d\u043d\u044f EPS (GAAP), \u043a\u043e\u043d\u0441\u0435\u043d\u0441\u0443\u0441 FY26\u2192FY27\u2192FY28", "value": "9% \u00b7 18% \u00b7 14%", "note": ["\u0437 FY16 \u043c\u0430\u0440\u0436\u0430 \u0437\u043c\u0456\u043d\u044e\u0432\u0430\u043b\u0430 EPS \u043d\u0430 \u221229\u2026+44 \u0432.\u043f. \u043d\u0430 \u0440\u0456\u043a, \u0432\u0438\u0440\u0443\u0447\u043a\u0430 \u043d\u0430 +10\u2026+22: \u043f\u0440\u0430\u0432\u0438\u043b\u043e \u0447\u0438\u0442\u0430\u0454\u043c\u043e \u0437\u0430 \u0432\u0438\u0440\u0443\u0447\u043a\u043e\u044e"]}, {"label": "\u041f\u0435\u0440\u0435\u0433\u043b\u044f\u0434\u0438 \u043e\u0446\u0456\u043d\u043e\u043a EPS \u0437\u0430 90 \u0434\u043d\u0456\u0432", "value": "+0,2% \u00b7 +0,5%", "note": ["FY26, FY27: \u043e\u0446\u0456\u043d\u043a\u0438 \u043d\u0435 \u0437\u043c\u0456\u043d\u044e\u044e\u0442\u044c\u0441\u044f"]}], "notes": ["EPS \u0437\u0430 FY25 \u043d\u0430 \u0441\u0442\u043e\u0440\u0456\u043d\u0446\u0456 \u043f\u0440\u043e\u0433\u043d\u043e\u0437\u0456\u0432 \u0432\u0456\u0434\u0440\u0456\u0437\u043d\u044f\u0454\u0442\u044c\u0441\u044f \u0432\u0456\u0434 \u0437\u0432\u0456\u0442\u043d\u043e\u0441\u0442\u0456 \u043d\u0430 +0,0% (16,70 \u043f\u0440\u043e\u0442\u0438 16,70): \u0441\u0442\u043e\u0440\u0456\u043d\u043a\u0430 \u043d\u0430 \u0431\u0430\u0437\u0456 GAAP."]}}, "rule": {"window": 8, "floor_pp": 1.5, "rel_pct": 15.0, "confirm": 2, "min_analysts": 5}, "asof": {"consensus": "2026-09-29", "page": "2026-09-30", "revisions": "2026-10-03"}, "last_reported": "2026-08-28", "first_year": 2016, "sources": {"snapshot": null, "page": null, "revisions": null}, "revenue": {"reported": [{"d": "2012-03-02", "label": "Q1 FY12", "kind": "reported", "g": 1.7041838813824262, "level": 1045.22}, {"d": "2012-06-01", "label": "Q2 FY12", "kind": "reported", "g": 9.897583902718887, "level": 1124.449}, {"d": "2012-08-31", "label": "Q3 FY12", "kind": "reported", "g": 6.648954019494435, "level": 1080.58}, {"d": "2012-11-30", "label": "Q4 FY12", "kind": "reported", "g": 0.10996727019920716, "level": 1153.428}, {"d": "2013-03-01", "label": "Q1 FY13", "kind": "reported", "g": -3.573123361588948, "level": 1007.873}, {"d": "2013-05-31", "label": "Q2 FY13", "kind": "reported", "g": -10.129405602210506, "level": 1010.549}, {"d": "2013-08-30", "label": "Q3 FY13", "kind": "reported", "g": -7.908808232615816, "level": 995.119}, {"d": "2013-11-29", "label": "Q4 FY13", "kind": "reported", "g": -9.686690456621482, "level": 1041.699}, {"d": "2014-02-28", "label": "Q1 FY14", "kind": "reported", "g": -0.7692437440034561, "level": 1000.12, "band": [-3.2315780456948704, -0.2315780456948704], "flag": null}, {"d": "2014-05-30", "label": "Q2 FY14", "kind": "reported", "g": 5.70571046035373, "level": 1068.208, "band": [-3.671183552796202, -0.6711835527962018], "flag": "up", "onset": true, "run": "Q2 FY14", "confirmed": true}, {"d": "2014-08-29", "label": "Q3 FY14", "kind": "reported", "g": 1.0340471843065968, "level": 1005.409, "band": [-3.671183552796202, -0.6711835527962018], "flag": "up", "run": "Q2 FY14", "confirmed": true}, {"d": "2014-11-28", "label": "Q4 FY14", "kind": "reported", "g": 3.036289753566046, "level": 1073.328, "band": [-3.671183552796202, -0.6711835527962018], "flag": "up", "run": "Q2 FY14", "confirmed": true}, {"d": "2015-02-27", "label": "Q1 FY15", "kind": "reported", "g": 10.904791425029003, "level": 1109.181, "band": [-3.671183552796202, -0.6711835527962018], "flag": "up", "run": "Q2 FY14", "confirmed": true}, {"d": "2015-05-29", "label": "Q2 FY15", "kind": "reported", "g": 8.795103575333641, "level": 1162.158, "band": [-1.3675982798484296, 1.6324017201515704], "flag": "up", "run": "Q2 FY14", "confirmed": true}, {"d": "2015-08-28", "label": "Q3 FY15", "kind": "reported", "g": 21.121652979036387, "level": 1217.768, "band": [0.5351684689363214, 3.5351684689363214], "flag": "up", "run": "Q2 FY14", "confirmed": true}, {"d": "2015-11-27", "label": "Q4 FY15", "kind": "reported", "g": 21.715263181431954, "level": 1306.404, "band": [2.8710001069598885, 5.8710001069598885], "flag": "up", "run": "Q2 FY14", "confirmed": true}, {"d": "2016-03-04", "label": "Q1 FY16", "kind": "reported", "g": 24.71679554554216, "level": 1383.335, "band": [5.750407017843686, 8.750407017843685], "flag": "up", "run": "Q2 FY14", "confirmed": true}, {"d": "2016-06-03", "label": "Q2 FY16", "kind": "reported", "g": 20.35446126946594, "level": 1398.709, "band": [8.349947500181322, 11.349947500181322], "flag": "up", "run": "Q2 FY14", "confirmed": true}, {"d": "2016-09-02", "label": "Q3 FY16", "kind": "reported", "g": 20.21723349603537, "level": 1463.967, "band": [13.285182395160351, 17.974070299334592], "flag": "up", "run": "Q2 FY14", "confirmed": true}, {"d": "2016-12-02", "label": "Q4 FY16", "kind": "reported", "g": 23.11804005499065, "level": 1608.419, "band": [17.242970275338056, 23.32872449016325], "flag": null}, {"d": "2017-03-03", "label": "Q1 FY17", "kind": "reported", "g": 21.564624620934183, "level": 1681.646, "band": [17.627348555613487, 23.84876569288884], "flag": null}, {"d": "2017-06-02", "label": "Q2 FY17", "kind": "reported", "g": 26.701837194155466, "level": 1772.19, "band": [18.141667979987492, 24.544609619983074], "flag": "up", "onset": true, "run": "Q2 FY17", "confirmed": true}, {"d": "2017-09-01", "label": "Q3 FY17", "kind": "reported", "g": 25.75925550234397, "level": 1841.074, "band": [18.393952316005606, 24.885935486360527], "flag": "up", "run": "Q2 FY17", "confirmed": true}, {"d": "2017-12-01", "label": "Q4 FY17", "kind": "reported", "g": 24.755738399011705, "level": 2006.595, "band": [19.05415387547961, 25.779149360943], "flag": null}, {"d": "2018-03-02", "label": "Q1 FY18", "kind": "reported", "g": 23.62572146575439, "level": 2078.947, "band": [20.329805130226447, 27.505030470306366], "flag": null}, {"d": "2018-06-01", "label": "Q2 FY18", "kind": "reported", "g": 23.878365186577067, "level": 2195.36, "band": [19.86609864631664, 26.8776628744284], "flag": null}, {"d": "2018-08-31", "label": "Q3 FY18", "kind": "reported", "g": 24.44236353345928, "level": 2291.076, "band": [20.18923682724087, 27.314849825090583], "flag": null}, {"d": "2018-11-30", "label": "Q4 FY18", "kind": "reported", "g": 22.82623050491006, "level": 2464.625, "band": [20.536309706015444, 27.784419014020898], "flag": null}, {"d": "2019-03-01", "label": "Q1 FY19", "kind": "reported", "g": 25.11141457670638, "level": 2601.0, "band": [20.536309706015444, 27.784419014020898], "flag": null}, {"d": "2019-05-31", "label": "Q2 FY19", "kind": "reported", "g": 24.990889876831133, "level": 2744.0, "band": [20.90919332130017, 28.288908611170815], "flag": null}, {"d": "2019-08-30", "label": "Q3 FY19", "kind": "reported", "g": 23.69733697179841, "level": 2834.0, "band": [20.90919332130017, 28.288908611170815], "flag": null}, {"d": "2019-11-29", "label": "Q4 FY19", "kind": "reported", "g": 21.397778566719072, "level": 2992.0, "band": [20.536309706015444, 27.784419014020898], "flag": null}, {"d": "2020-02-28", "label": "Q1 FY20", "kind": "reported", "g": 18.83890811226452, "level": 3091.0, "band": [20.21967341730958, 27.3560287410659], "flag": "down", "onset": true, "run": "Q1 FY20", "confirmed": true}, {"d": "2020-05-29", "label": "Q2 FY20", "kind": "reported", "g": 13.99416909620992, "level": 3128.0, "band": [20.21967341730958, 27.3560287410659], "flag": "down", "run": "Q1 FY20", "confirmed": true}, {"d": "2020-08-28", "label": "Q3 FY20", "kind": "reported", "g": 13.79675370501059, "level": 3225.0, "band": [19.7725161776011, 26.75105129910737], "flag": "down", "run": "Q1 FY20", "confirmed": true}, {"d": "2020-11-27", "label": "Q4 FY20", "kind": "reported", "g": 14.438502673796783, "level": 3424.0, "band": [18.79520385544238, 25.428805216186753], "flag": "down", "run": "Q1 FY20", "confirmed": true}, {"d": "2021-03-05", "label": "Q1 FY21", "kind": "reported", "g": 26.33451957295374, "level": 3905.0, "band": [17.100591838568025, 23.136094840415563], "flag": "up"}, {"d": "2021-06-04", "label": "Q2 FY21", "kind": "reported", "g": 22.60230179028133, "level": 3835.0, "band": [17.100591838568025, 23.136094840415563], "flag": null}, {"d": "2021-09-03", "label": "Q3 FY21", "kind": "reported", "g": 22.015503875969, "level": 3935.0, "band": [17.100591838568025, 23.136094840415563], "flag": null}, {"d": "2021-12-03", "label": "Q4 FY21", "kind": "reported", "g": 20.035046728971963, "level": 4110.0, "band": [17.100591838568025, 23.136094840415563], "flag": null}, {"d": "2022-03-04", "label": "Q1 FY22", "kind": "reported", "g": 9.142125480153652, "level": 4262.0, "band": [16.521430807525505, 22.352524033710978], "flag": "down", "onset": true, "run": "Q1 FY22", "confirmed": true}, {"d": "2022-06-03", "label": "Q2 FY22", "kind": "reported", "g": 14.367666232073017, "level": 4386.0, "band": [14.651258496176718, 19.82229090659203], "flag": "down", "run": "Q1 FY22", "confirmed": true}, {"d": "2022-09-02", "label": "Q3 FY22", "kind": "reported", "g": 12.655654383735705, "level": 4433.0, "band": [14.651258496176718, 19.82229090659203], "flag": "down", "run": "Q1 FY22", "confirmed": true}, {"d": "2022-12-02", "label": "Q4 FY22", "kind": "reported", "g": 10.09732360097324, "level": 4525.0, "band": [14.651258496176718, 19.82229090659203], "flag": "down", "run": "Q1 FY22", "confirmed": true}, {"d": "2023-03-03", "label": "Q1 FY23", "kind": "reported", "g": 9.221022993899574, "level": 4655.0, "band": [14.621153008444118, 19.781559952600865], "flag": "down", "run": "Q1 FY22", "confirmed": true}, {"d": "2023-06-02", "label": "Q2 FY23", "kind": "reported", "g": 9.80392156862746, "level": 4816.0, "band": [11.484911261718707, 15.538409354090014], "flag": "down", "run": "Q1 FY22", "confirmed": true}, {"d": "2023-09-01", "label": "Q3 FY23", "kind": "reported", "g": 10.30904579291676, "level": 4890.0, "band": [9.670015643501301, 13.082962341207644], "flag": null}, {"d": "2023-12-01", "label": "Q4 FY23", "kind": "reported", "g": 11.55801104972376, "level": 5048.0, "band": [8.67270699240325, 11.73366240148675], "flag": null}, {"d": "2024-03-01", "label": "Q1 FY24", "kind": "reported", "g": 11.32116004296455, "level": 5182.0, "band": [8.67270699240325, 11.73366240148675], "flag": null}, {"d": "2024-05-31", "label": "Q2 FY24", "kind": "reported", "g": 10.236710963455153, "level": 5309.0, "band": [9.192837480249556, 12.437368355631753], "flag": null}, {"d": "2024-08-30", "label": "Q3 FY24", "kind": "reported", "g": 10.593047034764824, "level": 5408.0, "band": [8.731946621458063, 11.81381013491385], "flag": null}, {"d": "2024-11-29", "label": "Q4 FY24", "kind": "reported", "g": 11.05388272583201, "level": 5606.0, "band": [8.731946621458063, 11.81381013491385], "flag": null}, {"d": "2025-02-28", "label": "Q1 FY25", "kind": "reported", "g": 10.266306445387885, "level": 5714.0, "band": [8.883389451764673, 12.018703375916912], "flag": null}, {"d": "2025-05-30", "label": "Q2 FY25", "kind": "reported", "g": 10.623469579958567, "level": 5873.0, "band": [8.883389451764673, 12.018703375916912], "flag": null}, {"d": "2025-08-29", "label": "Q3 FY25", "kind": "reported", "g": 10.724852071005909, "level": 5988.0, "band": [9.01701956125744, 12.199497053465949], "flag": null}, {"d": "2025-11-28", "label": "Q4 FY25", "kind": "reported", "g": 10.488762040670707, "level": 6194.0, "band": [9.073036701659902, 12.275284949304574], "flag": null}, {"d": "2026-02-27", "label": "Q1 FY26", "kind": "reported", "g": 11.970598529926502, "level": 6398.0, "band": [9.01701956125744, 12.199497053465949], "flag": null}, {"d": "2026-05-29", "label": "Q2 FY26", "kind": "reported", "g": 12.685169419376807, "level": 6618.0, "band": [9.01701956125744, 12.199497053465949], "flag": "up", "onset": true, "run": "Q2 FY26", "confirmed": true}, {"d": "2026-08-28", "label": "Q3 FY26", "kind": "reported", "g": 12.892451569806273, "level": 6760.0, "band": [9.073036701659902, 12.275284949304574], "flag": "up", "run": "Q2 FY26", "confirmed": true}], "consensus": [{"d": "2026-11-28", "label": "Q4 FY26", "kind": "consensus", "g": 10.291995059735237, "lo": 9.969503842428162, "hi": 11.259468695511776, "n": 16, "level": 6831.486174, "band": [9.255962288656114, 12.522772508181802], "thin": false, "flag": null, "gap": -2.6004565100710355, "turn": "down"}, {"d": "2027-02-28", "label": "Q1 FY27", "kind": "consensus", "g": 10.184936839637393, "lo": 7.39936258205689, "hi": 17.458380697092846, "n": 16, "level": 7049.632259, "band": [9.255962288656114, 12.522772508181802], "thin": false, "flag": null, "gap": -2.70751473016888, "turn": "down"}, {"d": "2027-05-28", "label": "Q2 FY27", "kind": "consensus", "g": 8.726638742822601, "lo": 6.971367376851023, "hi": 15.004237292233302, "n": 15, "level": 7195.528952, "band": [9.255962288656114, 12.522772508181802], "thin": false, "flag": "down", "onset": true, "run": "Q2 FY27", "confirmed": true, "gap": -4.165812826983672, "turn": "down"}, {"d": "2027-08-28", "label": "Q3 FY27", "kind": "consensus", "g": 8.351600192307696, "lo": 6.602383417159774, "hi": 14.60754497041421, "n": 11, "level": 7324.568173, "band": [9.255962288656114, 12.522772508181802], "thin": false, "flag": "down", "run": "Q2 FY27", "confirmed": true, "gap": -4.540851377498576, "turn": "down"}, {"d": "2027-11-28", "label": "Q4 FY27", "kind": "consensus", "g": 8.731142694397853, "lo": 6.975798616320228, "hi": 15.009001290265944, "n": 8, "level": 7427.95298, "band": [9.255962288656114, 12.522772508181802], "thin": false, "flag": "down", "run": "Q2 FY27", "confirmed": true, "gap": -4.1613088754084195, "turn": "down"}, {"d": "2028-02-28", "label": "Q1 FY28", "kind": "consensus", "g": 7.497099161807497, "lo": 5.761677362410622, "hi": 13.703707236170604, "n": 7, "level": 7578.15018, "band": [9.255962288656114, 12.522772508181802], "thin": false, "flag": "down", "run": "Q2 FY27", "confirmed": true, "gap": -5.395352407998776, "turn": "down"}, {"d": "2028-05-28", "label": "Q2 FY28", "kind": "consensus", "g": 7.8643716643334916, "lo": 6.1230206554521605, "hi": 14.092185116122092, "n": 14, "level": 7761.412092, "band": [9.255962288656114, 12.522772508181802], "thin": false, "flag": "down", "run": "Q2 FY27", "confirmed": true, "gap": -5.028079905472781, "turn": "down"}, {"d": "2028-08-28", "label": "Q3 FY28", "kind": "consensus", "g": 7.781015324574003, "lo": 6.041010002897829, "hi": 14.004015988015306, "n": 10, "level": 7894.493945, "band": [9.255962288656114, 12.522772508181802], "thin": false, "flag": "down", "run": "Q2 FY27", "confirmed": true, "gap": -5.1114362452322695, "turn": "down"}, {"d": "2028-11-28", "label": "Q4 FY28", "kind": "consensus", "g": 8.022261740272896, "lo": 6.278361767443497, "hi": 14.259191352608692, "n": 7, "level": 8023.84281, "band": [9.255962288656114, 12.522772508181802], "thin": false, "flag": "down", "run": "Q2 FY27", "confirmed": true, "gap": -4.870189829533377, "turn": "down"}], "beyond": [{"d": "2029-11-28", "label": "FY29", "kind": "consensus_fy", "g": 8.810200137335599, "n": 21, "level": 34428.0, "band": [9.255962288656114, 12.522772508181802], "thin": false, "flag": "down", "run": "Q2 FY27", "confirmed": true, "gap": -4.082251432470674, "turn": "down"}, {"d": "2030-11-28", "label": "FY30", "kind": "consensus_fy", "g": 8.589810619263382, "n": 16, "level": 37385.3, "band": [9.255962288656114, 12.522772508181802], "thin": false, "flag": "down", "run": "Q2 FY27", "confirmed": true, "gap": -4.302640950542891, "turn": "down"}], "frozen": [9.255962288656114, 12.522772508181802], "latest": {"g": 12.892451569806273, "label": "Q3 FY26", "thr": 1.9338677354709408}}, "eps": {"reported": [{"d": "2012-03-02", "label": "Q1 FY12", "kind": "reported", "g": -7.741879974423482, "level": 1.5653013039931951}, {"d": "2012-06-01", "label": "Q2 FY12", "kind": "reported", "g": -16.97065210862635, "level": 1.5580083497815418}, {"d": "2012-08-31", "label": "Q3 FY12", "kind": "reported", "g": -14.22703866089673, "level": 1.5697394747456954}, {"d": "2012-11-30", "label": "Q4 FY12", "kind": "reported", "g": 0.34792305128272805, "level": 1.6606552187427557}, {"d": "2013-03-01", "label": "Q1 FY13", "kind": "reported", "g": -9.543942595538512, "level": 1.4159098460928687}, {"d": "2013-05-31", "label": "Q2 FY13", "kind": "reported", "g": -28.301840872525684, "level": 1.1170633058457065}, {"d": "2013-08-30", "label": "Q3 FY13", "kind": "reported", "g": -44.129968401029785, "level": 0.877013940561929}, {"d": "2013-11-29", "label": "Q4 FY13", "kind": "reported", "g": -65.90740270071176, "level": 0.566160496255582}, {"d": "2014-02-28", "label": "Q1 FY14", "kind": "reported", "g": -62.51530160695906, "level": 0.530749535325282, "band": [-17.93867219247577, -13.259018577047309], "flag": "down", "onset": true, "run": "Q1 FY14", "confirmed": true}, {"d": "2014-05-30", "label": "Q2 FY14", "kind": "reported", "g": -50.25376622419764, "level": 0.5556969235497112, "band": [-26.03168346416242, -19.240809516989614], "flag": "down", "run": "Q1 FY14", "confirmed": true}, {"d": "2014-08-29", "label": "Q3 FY14", "kind": "reported", "g": -45.02127816961972, "level": 0.48217105479519967, "band": [-41.648290332294394, -30.783518941261075], "flag": "down", "run": "Q1 FY14", "confirmed": true}, {"d": "2014-11-28", "label": "Q4 FY14", "kind": "reported", "g": -6.636339821738169, "level": 0.5285881617876224, "band": [-51.261966778123465, -37.88927979252604], "flag": "up", "onset": true, "run": "Q4 FY14", "confirmed": true}, {"d": "2015-02-27", "label": "Q1 FY15", "kind": "reported", "g": 13.680282064537908, "level": 0.6033575688140048, "band": [-51.261966778123465, -37.88927979252604], "flag": "up", "run": "Q4 FY14", "confirmed": true}, {"d": "2015-05-29", "label": "Q2 FY15", "kind": "reported", "g": 29.55372005394743, "level": 0.7199260366839911, "band": [-51.261966778123465, -37.88927979252604], "flag": "up", "run": "Q4 FY14", "confirmed": true}, {"d": "2015-08-28", "label": "Q3 FY15", "kind": "reported", "g": 102.5678493214905, "level": 0.9767235357493814, "band": [-51.261966778123465, -37.88927979252604], "flag": "up", "run": "Q4 FY14", "confirmed": true}, {"d": "2015-11-27", "label": "Q4 FY15", "kind": "reported", "g": 135.12074631814332, "level": 1.2428204309444126, "band": [-29.703130345030786, -21.954487646327102], "flag": "up", "run": "Q4 FY14", "confirmed": true}, {"d": "2016-03-04", "label": "Q1 FY16", "kind": "reported", "g": 161.65550856634917, "level": 1.5787183151538444, "band": [2.0219711213998695, 5.0219711213998695], "flag": "up", "run": "Q4 FY14", "confirmed": true}, {"d": "2016-06-03", "label": "Q2 FY16", "kind": "reported", "g": 145.9011235474923, "level": 1.7703062129168656, "band": [18.37445090035627, 24.859551218129067], "flag": "up", "run": "Q4 FY14", "confirmed": true}, {"d": "2016-09-02", "label": "Q3 FY16", "kind": "reported", "g": 100.95668893899257, "level": 1.9627912775298142, "band": [56.15166698456112, 75.96990239087681], "flag": "up", "run": "Q4 FY14", "confirmed": true}, {"d": "2016-12-02", "label": "Q4 FY16", "kind": "reported", "g": 86.6114956077374, "level": 2.3192457939038955, "band": [86.4979287607053, 117.02660949977776], "flag": null}, {"d": "2017-03-03", "label": "Q1 FY17", "kind": "reported", "g": 65.41916412204829, "level": 2.6115026407691735, "band": [86.4979287607053, 117.02660949977776], "flag": "down", "onset": true, "run": "Q1 FY17", "confirmed": true}, {"d": "2017-06-02", "label": "Q2 FY17", "kind": "reported", "g": 62.512502992444865, "level": 2.8769689372419585, "band": [86.4979287607053, 117.02660949977776], "flag": "down", "run": "Q1 FY17", "confirmed": true}, {"d": "2017-09-01", "label": "Q3 FY17", "kind": "reported", "g": 61.94960767320323, "level": 3.1787327734033877, "band": [86.4979287607053, 117.02660949977776], "flag": "down", "run": "Q1 FY17", "confirmed": true}, {"d": "2017-12-01", "label": "Q4 FY17", "kind": "reported", "g": 45.864896955508215, "level": 3.3829654874228754, "band": [79.71647843236025, 107.85170611436973], "flag": "down", "run": "Q1 FY17", "confirmed": true}, {"d": "2018-03-02", "label": "Q1 FY18", "kind": "reported", "g": 43.762576834570346, "level": 3.754363490472617, "band": [64.61303038515891, 87.41762934462676], "flag": "down", "run": "Q1 FY17", "confirmed": true}, {"d": "2018-06-01", "label": "Q2 FY18", "kind": "reported", "g": 50.71534468272609, "level": 4.336033650179179, "band": [54.37095852365959, 73.56070859083356], "flag": "down", "run": "Q1 FY17", "confirmed": true}, {"d": "2018-08-31", "label": "Q3 FY18", "kind": "reported", "g": 52.20448233046886, "level": 4.838173762427582, "band": [52.89639703290044, 71.56571363274766], "flag": "down", "run": "Q1 FY17", "confirmed": true}, {"d": "2018-11-30", "label": "Q4 FY18", "kind": "reported", "g": 53.936305821446304, "level": 5.207612098553259, "band": [48.51548825156064, 65.63860175211146], "flag": null}, {"d": "2019-03-01", "label": "Q1 FY19", "kind": "reported", "g": 43.95481614913022, "level": 5.4045870602799235, "band": [45.109834964563944, 61.030953187351216], "flag": "down", "onset": true, "run": "Q1 FY19", "confirmed": true}, {"d": "2019-05-31", "label": "Q2 FY19", "kind": "reported", "g": 23.61836783327429, "level": 5.360134027053047, "band": [43.740926480607854, 59.17890053258709], "flag": "down", "run": "Q1 FY19", "confirmed": true}, {"d": "2019-08-30", "label": "Q3 FY19", "kind": "reported", "g": 16.427787495542212, "level": 5.632978666784264, "band": [41.04660269624958, 55.53363894198472], "flag": "down", "run": "Q1 FY19", "confirmed": true}, {"d": "2019-11-29", "label": "Q4 FY19", "kind": "reported", "g": 15.315566792889857, "level": 6.005187407821797, "band": [38.17337806947133, 51.64633503516709], "flag": "down", "run": "Q1 FY19", "confirmed": true}, {"d": "2020-02-28", "label": "Q1 FY20", "kind": "reported", "g": 22.08695609536948, "level": 6.5982958314199704, "band": [37.27989201807274, 50.43750096562783], "flag": "down", "run": "Q1 FY19", "confirmed": true}, {"d": "2020-05-29", "label": "Q2 FY20", "kind": "reported", "g": 41.414852127532555, "level": 7.580025608194623, "band": [28.71860319252192, 38.8545807898826], "flag": "up", "onset": true, "run": "Q2 FY20", "confirmed": true}, {"d": "2020-08-28", "label": "Q3 FY20", "kind": "reported", "g": 40.897101294477764, "level": 7.936703658035348, "band": [27.63911848334291, 37.394101477463934], "flag": "up", "run": "Q2 FY20", "confirmed": true}, {"d": "2020-11-27", "label": "Q4 FY20", "kind": "reported", "g": 80.40458956157453, "level": 10.83363369548427, "band": [27.419074379294624, 37.096394748457435], "flag": "up", "run": "Q2 FY20", "confirmed": true}, {"d": "2021-03-05", "label": "Q1 FY21", "kind": "reported", "g": 74.17946406109463, "level": 11.492876316332852, "band": [27.419074379294624, 37.096394748457435], "flag": "up", "run": "Q2 FY20", "confirmed": true}, {"d": "2021-06-04", "label": "Q2 FY21", "kind": "reported", "g": 52.371016267664295, "level": 11.549762052555348, "band": [27.419074379294624, 37.096394748457435], "flag": "up", "run": "Q2 FY20", "confirmed": true}, {"d": "2021-09-03", "label": "Q3 FY21", "kind": "reported", "g": 52.55486927296551, "level": 12.107827890098497, "band": [34.982580204354385, 47.329373217655935], "flag": "up", "run": "Q2 FY20", "confirmed": true}, {"d": "2021-12-03", "label": "Q4 FY21", "kind": "reported", "g": -7.457924011109929, "level": 10.025669526833052, "band": [39.85899406795866, 53.92687432723818], "flag": "down", "onset": true, "run": "Q4 FY21", "confirmed": true}, {"d": "2022-03-04", "label": "Q1 FY22", "kind": "reported", "g": -12.334016126318136, "level": 10.07534309809856, "band": [39.85899406795866, 53.92687432723818], "flag": "down", "run": "Q4 FY21", "confirmed": true}, {"d": "2022-06-03", "label": "Q2 FY22", "kind": "reported", "g": -11.298173208503426, "level": 10.244849930687645, "band": [39.85899406795866, 53.92687432723818], "flag": "down", "run": "Q4 FY21", "confirmed": true}, {"d": "2022-09-02", "label": "Q3 FY22", "kind": "reported", "g": -16.20584129792225, "level": 10.145652517603565, "band": [39.63894996391038, 53.62916759823169], "flag": "down", "run": "Q4 FY21", "confirmed": true}, {"d": "2022-12-02", "label": "Q4 FY22", "kind": "reported", "g": 0.7394952485493045, "level": 10.099808876619239, "band": [19.088064209035604, 25.82502804751876], "flag": "down", "run": "Q4 FY21", "confirmed": true}, {"d": "2023-03-03", "label": "Q1 FY23", "kind": "reported", "g": 0.6923352426389418, "level": 10.145098249183487, "band": [-4.859214381280312, -1.8592143812803124], "flag": "up", "onset": true, "run": "Q1 FY23", "confirmed": true}, {"d": "2023-06-02", "label": "Q2 FY23", "kind": "reported", "g": 2.271660231620487, "level": 10.477578112352274, "band": [-4.882794384235494, -1.8827943842354937], "flag": "up", "run": "Q1 FY23", "confirmed": true}, {"d": "2023-09-01", "label": "Q3 FY23", "kind": "reported", "g": 9.537373083865397, "level": 11.11328125, "band": [-4.882794384235494, -1.8827943842354937], "flag": "up", "run": "Q1 FY23", "confirmed": true}, {"d": "2023-12-01", "label": "Q4 FY23", "kind": "reported", "g": 17.05655595568509, "level": 11.82248842907705, "band": [-4.882794384235494, -1.8827943842354937], "flag": "up", "run": "Q1 FY23", "confirmed": true}, {"d": "2024-03-01", "label": "Q1 FY24", "kind": "reported", "g": 3.252815201741077, "level": 10.475099547264495, "band": [-0.7840847544058769, 2.215915245594123], "flag": "up", "run": "Q1 FY23", "confirmed": true}, {"d": "2024-05-31", "label": "Q2 FY24", "kind": "reported", "g": 6.188264689277401, "level": 11.125958378970427, "band": [0.005577740084895755, 3.0055777400848958], "flag": "up", "run": "Q1 FY23", "confirmed": true}, {"d": "2024-08-30", "label": "Q3 FY24", "kind": "reported", "g": 6.346022743731017, "level": 11.818532605699795, "band": [1.262237716680782, 4.262237716680782], "flag": "up", "run": "Q1 FY23", "confirmed": true}, {"d": "2024-11-29", "label": "Q4 FY24", "kind": "reported", "g": 4.58445813583781, "level": 12.364485461722355, "band": [3.2205399455092394, 6.220539945509239], "flag": null}, {"d": "2025-02-28", "label": "Q1 FY25", "kind": "reported", "g": 44.82713456232199, "level": 15.170786516853932, "band": [3.886361412557605, 6.886361412557605], "flag": "up", "onset": true, "run": "Q1 FY25", "confirmed": true}, {"d": "2025-05-30", "label": "Q2 FY25", "kind": "reported", "g": 40.51437080752838, "level": 15.63357041251778, "band": [4.767143716504209, 7.767143716504209], "flag": "up", "run": "Q1 FY25", "confirmed": true}, {"d": "2025-08-29", "label": "Q3 FY25", "kind": "reported", "g": 35.79048636574911, "level": 16.048442906574394, "band": [6.441697913798206, 9.441697913798206], "flag": "up", "run": "Q1 FY25", "confirmed": true}, {"d": "2025-11-28", "label": "Q4 FY25", "kind": "reported", "g": 35.04720696510708, "level": 16.697892271662763, "band": [9.946095947251846, 13.456482752164261], "flag": "up", "run": "Q1 FY25", "confirmed": true}, {"d": "2026-02-27", "label": "Q1 FY26", "kind": "reported", "g": 13.04394132285125, "level": 17.149655008327386, "band": [17.59212262625619, 23.801107082581908], "flag": "down", "onset": true, "run": "Q1 FY26", "confirmed": true}, {"d": "2026-05-29", "label": "Q2 FY26", "kind": "reported", "g": 11.772388044601257, "level": 17.474014986705342, "band": [20.438738022382292, 27.65241026557604], "flag": "down", "run": "Q1 FY26", "confirmed": true}, {"d": "2026-08-28", "label": "Q3 FY26", "kind": "reported", "g": 11.640833486204173, "level": 17.916615422457262, "band": [20.438738022382292, 27.65241026557604], "flag": "down", "run": "Q1 FY26", "confirmed": true}], "gaap_fc": [{"d": "2026-11-28", "label": "FY26", "kind": "consensus_gaap", "g": 9.235343618513326, "level": 18.24, "band": [20.438738022382292, 27.65241026557604], "flag": "down"}, {"d": "2027-11-28", "label": "FY27", "kind": "consensus_gaap", "g": 17.59868421052633, "level": 21.45, "band": [20.438738022382292, 27.65241026557604], "flag": "down"}, {"d": "2028-11-28", "label": "FY28", "kind": "consensus_gaap", "g": 13.752913752913742, "level": 24.4, "band": [20.438738022382292, 27.65241026557604], "flag": "down"}], "adj_fc": [{"d": "2027-11-28", "label": "FY27", "kind": "snap_adjusted", "series": "snap", "g": 13.382482380883332, "level": 27.75983, "n": 24, "thin": false}, {"d": "2028-11-28", "label": "FY28", "kind": "snap_adjusted", "series": "snap", "g": 13.979588491716278, "level": 31.64054, "n": 15, "thin": false}, {"d": "2029-11-28", "label": "FY29", "kind": "snap_adjusted", "series": "snap", "g": 17.760316353639972, "level": 37.26, "n": 11, "thin": false}, {"d": "2030-11-28", "label": "FY30", "kind": "snap_adjusted", "series": "snap", "g": -6.494900697799233, "level": 34.84, "n": 6, "thin": true}], "frozen": [20.438738022382292, 27.65241026557604], "naive": [{"label": "Q4 FY26", "yoy": 42.3}, {"label": "Q1 FY27", "yoy": 46.98}, {"label": "Q2 FY27", "yoy": 59.64}, {"label": "Q3 FY27", "yoy": 50.8}, {"label": "Q4 FY27", "yoy": 12.97}, {"label": "Q1 FY28", "yoy": 9.790000000000001}, {"label": "Q2 FY28", "yoy": 11.57}, {"label": "Q3 FY28", "yoy": 11.85}, {"label": "Q4 FY28", "yoy": 12.08}], "basis": "adjusted"}, "drivers": [{"fy": "FY16", "kind": "reported", "revenue": 19.95183676202332, "margin": 41.91922254043587, "shares": 0.5665076551928647, "total": 62.43756695765206, "eps_growth": 86.70799186770654}, {"fy": "FY17", "kind": "reported", "revenue": 22.08818516683596, "margin": 15.022140860420283, "shares": 0.6317766199552415, "total": 37.74210264721148, "eps_growth": 45.85182549138751}, {"fy": "FY18", "kind": "reported", "revenue": 21.24718761399431, "margin": 21.250658424238008, "shares": 0.6653190001010689, "total": 43.16316503833338, "eps_growth": 53.97678377965338}, {"fy": "FY19", "kind": "reported", "revenue": 21.276876715981725, "margin": -8.26685727789878, "shares": 1.2533012241611883, "total": 14.263320662244134, "eps_growth": 15.33066988156726}, {"fy": "FY20", "kind": "reported", "revenue": 14.14224747880686, "margin": 43.656445600074754, "shares": 1.2486089960500197, "total": 59.04730207493164, "eps_growth": 80.48419412016594}, {"fy": "FY21", "kind": "reported", "revenue": 20.4316512633175, "margin": -29.125875962381432, "shares": 0.9312017625618473, "total": -7.7630229365020815, "eps_growth": -7.469348552998745}, {"fy": "FY22", "kind": "reported", "revenue": 10.917963102875948, "margin": -12.296143195920328, "shares": 2.122151285625237, "total": 0.7439711925808566, "eps_growth": 0.7467455340907314}, {"fy": "FY23", "kind": "reported", "revenue": 9.749712297987577, "margin": 3.4666640164211664, "shares": 2.537770599433243, "total": 15.754146913841987, "eps_growth": 17.06293019637095}, {"fy": "FY24", "kind": "reported", "revenue": 10.254859021710965, "margin": -7.852122392724123, "shares": 2.068735747851473, "total": 4.471472376838315, "eps_growth": 4.572949558282446}, {"fy": "FY25", "kind": "reported", "revenue": 10.009674441551493, "margin": 14.861638174819877, "shares": 5.1796680548037175, "total": 30.050980671175086, "eps_growth": 35.054715010193235}, {"fy": "FY26", "kind": "consensus", "revenue": 11.294245348947465, "margin": -9.171082267990132, "shares": 6.7102853656894705, "total": 8.833448446646804, "eps_growth": 9.235343618513326}, {"fy": "FY27", "kind": "consensus", "revenue": 8.779708404898077, "margin": 4.134807258214653, "shares": 3.296250409671343, "total": 16.21076607278407, "eps_growth": 17.59868421052633}, {"fy": "FY28", "kind": "consensus", "revenue": 8.308555438023046, "margin": 1.9907009656465942, "shares": 2.5865922888433834, "total": 12.885848692513022, "eps_growth": 13.752913752913742}], "revisions": [{"label": "Q4 FY26", "year": false, "now": 6.3314, "refused": "copied"}, {"label": "Q1 FY27", "year": false, "now": 6.7814, "was": {"7": 0.6157361385183746, "30": 0.5769373377827236, "60": 0.6994045409322247, "90": 0.7158557595199788}}, {"label": "FY26", "year": true, "now": 24.4808, "was": {"7": 0.004902040883014713, "30": 0.2814178214901597, "60": 0.28634749230875833, "90": 0.21409419325786327}}, {"label": "FY27", "year": true, "now": 27.6733, "was": {"7": 0.005782080609439966, "30": 0.6653231673602322, "60": 0.6781412236374518, "90": 0.4873071378512783}}]};
+const NS = "http://www.w3.org/2000/svg";
+const el = (tag, attrs, parent) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; };
+const h = (tag, cls, text, parent) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; if (parent) parent.appendChild(e); return e; };
+const $ = id => document.getElementById(id);
+const T = d => Date.parse(d);
+let LANG = "en";
+const dec = s => LANG === "uk" ? s.replace(".", ",") : s;
+const n1 = v => dec((v < 0 ? "−" : "") + Math.abs(v).toFixed(1));
+const n2 = v => dec(v.toFixed(2));
+const f1 = v => n1(v) + "%";
+const sg = v => (v >= 0 ? "+" : "−") + dec(Math.abs(v).toFixed(1));
+const money = v => LANG === "uk" ? "$" + Math.round(v).toLocaleString("uk-UA") + " млн" : "$" + Math.round(v).toLocaleString("en-US") + "m";
+const shown = p => +p.d.slice(0, 4) >= D.first_year;
+const tip = $("tip");
+
+function showTip(ev, head, rows, more) {
+  tip.replaceChildren();
+  h("div", "head", head, tip);
+  for (const r of rows) {
+    const row = h("div", "row", null, tip);
+    const key = h("span", "key", null, row);
+    if (r.color) key.style.borderTopColor = r.color;
+    if (r.dash) key.style.borderTopStyle = "dashed";
+    h("span", null, r.name, row);
+    h("b", null, r.value, row);
+  }
+  for (const m of more || []) h("div", "more", m, tip);
+  tip.style.display = "block";
+  const w = tip.offsetWidth, x = ev.clientX + 16 + w > innerWidth ? ev.clientX - w - 16 : ev.clientX + 16;
+  tip.style.left = x + "px"; tip.style.top = Math.max(8, ev.clientY - 20) + "px";
+}
+const hideTip = () => { tip.style.display = "none"; };
+
+function niceStep(span, max) { for (const s of [1, 2, 2.5, 5, 10, 20, 25, 50, 100]) if (span / s <= max) return s; return 200; }
+
+function frame(host, o) {
+  const W = 1000, H = o.h || 360, m = { t: 26, r: 64, b: 28, l: 44 };
+  const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, class: "chart", role: "img", "aria-label": o.label }, host);
+  const step = niceStep(o.y1 - o.y0, 7), y0 = Math.floor(o.y0 / step) * step, y1 = Math.ceil(o.y1 / step) * step;
+  const X = v => m.l + (v - o.x0) / (o.x1 - o.x0) * (W - m.l - m.r);
+  const Y = v => H - m.b - (v - y0) / (y1 - y0) * (H - m.t - m.b);
+  for (let v = y0; v <= y1 + 1e-9; v += step) {
+    el("line", { x1: m.l, x2: W - m.r, y1: Y(v), y2: Y(v), stroke: v === 0 ? "var(--axis)" : "var(--grid)", "stroke-width": 1 }, svg);
+    el("text", { x: m.l - 8, y: Y(v) + 4, "text-anchor": "end" }, svg).textContent = v + (o.unit ?? "%");
+  }
+  const clip = "clip" + document.querySelectorAll("clipPath").length;
+  el("rect", { x: m.l, y: m.t, width: W - m.l - m.r + 40, height: H - m.t - m.b }, el("clipPath", { id: clip }, svg));
+  return { svg, X, Y, W, H, m, y0, y1, clip };
+}
+
+function yearTicks(f, x0, x1) {
+  for (let y = new Date(x0).getUTCFullYear() + 1; Date.UTC(y, 0, 1) <= x1; y++) {
+    const x = f.X(Date.UTC(y, 0, 1));
+    el("line", { x1: x, x2: x, y1: f.H - f.m.b, y2: f.H - f.m.b + 4, stroke: "var(--axis)" }, f.svg);
+    el("text", { x, y: f.H - 8, "text-anchor": "middle" }, f.svg).textContent = y;
+  }
+}
+
+function divider(f, x, left, right) {
+  el("line", { x1: x, x2: x, y1: f.m.t - 12, y2: f.H - f.m.b, stroke: "var(--axis)", "stroke-width": 1 }, f.svg);
+  el("text", { x: x - 8, y: f.m.t - 4, "text-anchor": "end" }, f.svg).textContent = left;
+  el("text", { x: x + 8, y: f.m.t - 4 }, f.svg).textContent = right;
+}
+
+const path = (f, pts) => pts.map((p, i) => (i ? "L" : "M") + f.X(T(p.d)).toFixed(1) + " " + f.Y(p.g).toFixed(1)).join("");
+function area(f, pts, lo, hi, fill) {
+  const up = pts.map(p => f.X(T(p.d)).toFixed(1) + " " + f.Y(hi(p)).toFixed(1));
+  const dn = pts.slice().reverse().map(p => f.X(T(p.d)).toFixed(1) + " " + f.Y(lo(p)).toFixed(1));
+  el("path", { d: "M" + up.concat(dn).join("L") + "Z", fill }, f.svg);
+}
+function line(f, pts, color, dash) {
+  el("path", { d: path(f, pts), "clip-path": `url(#${f.clip})`, fill: "none", stroke: color, "stroke-width": 2, "stroke-linejoin": "round", "stroke-linecap": "round", ...(dash ? { "stroke-dasharray": "6 5" } : {}) }, f.svg);
+}
+function dot(f, p, color, hollow) {
+  el("circle", { cx: f.X(T(p.d)), cy: f.Y(p.g), r: hollow ? 4 : 4.5, fill: hollow ? "var(--surface)" : color, stroke: hollow ? color : "var(--surface)", "stroke-width": 2 }, f.svg);
+}
+function breakMark(f, p, text, side) {
+  const x = f.X(T(p.d)), y = f.Y(p.g), up = p.flag === "up", s = up ? -1 : 1;
+  el("circle", { cx: x, cy: y, r: 6, fill: "var(--surface)", stroke: "var(--ink)", "stroke-width": 1.5 }, f.svg);
+  const base = y + s * 12, apex = y + s * 20;
+  el("path", { d: `M${x - 5} ${base}L${x + 5} ${base}L${x} ${apex}Z`, fill: "var(--ink)" }, f.svg);
+  el("text", { x: side ? x + 10 : x, y: y + s * 31 + 4, "text-anchor": side ? "start" : "middle", class: "note" }, f.svg).textContent = text;
+}
+
+function hover(f, pts, describe) {
+  const cross = el("line", { y1: f.m.t, y2: f.H - f.m.b, stroke: "var(--ink2)", "stroke-width": 1, visibility: "hidden" }, f.svg);
+  const hit = el("rect", { x: f.m.l, y: f.m.t, width: f.W - f.m.l - f.m.r + 30, height: f.H - f.m.t - f.m.b, fill: "transparent" }, f.svg);
+  const xs = [...new Set(pts.map(p => p.d))].sort();
+  hit.addEventListener("pointermove", ev => {
+    const r = f.svg.getBoundingClientRect(), px = (ev.clientX - r.left) / r.width * f.W;
+    const d = xs.reduce((a, b) => Math.abs(f.X(T(b)) - px) < Math.abs(f.X(T(a)) - px) ? b : a);
+    cross.setAttribute("x1", f.X(T(d))); cross.setAttribute("x2", f.X(T(d))); cross.setAttribute("visibility", "visible");
+    const here = pts.filter(p => p.d === d), [head, rows, more] = describe(here);
+    showTip(ev, head, rows, more);
+  });
+  hit.addEventListener("pointerleave", () => { cross.setAttribute("visibility", "hidden"); hideTip(); });
+}
+
+function legend(id, items) {
+  for (const it of items) {
+    const s = h("span", null, null, $(id));
+    const k = el("svg", { width: 22, height: 12, viewBox: "0 0 22 12" }, s);
+    if (it.kind === "line") el("line", { x1: 1, x2: 21, y1: 6, y2: 6, stroke: it.color, "stroke-width": it.w || 2, "stroke-linecap": "round", ...(it.dash ? { "stroke-dasharray": "5 4" } : {}) }, k);
+    if (it.kind === "rect") el("rect", { x: 3, y: 1, width: 16, height: 10, rx: 2, fill: it.color, ...(it.opacity ? { opacity: it.opacity } : {}) }, k);
+    if (it.kind === "dot") el("circle", { cx: 11, cy: 6, r: 4, fill: it.hollow ? "var(--surface)" : it.color, stroke: it.hollow ? it.color : "none", "stroke-width": 2 }, k);
+    if (it.kind === "break") { el("circle", { cx: 6, cy: 6, r: 4.5, fill: "var(--surface)", stroke: "var(--ink)", "stroke-width": 1.5 }, k); el("path", { d: "M13 9L21 9L17 3Z", fill: "var(--ink)" }, k); }
+    s.appendChild(document.createTextNode(it.text));
+  }
+}
+
+function table(id, head, rows) {
+  const t = h("table", null, null, $(id)), tr = h("tr", null, null, h("thead", null, null, t));
+  head.forEach(c => h("th", null, c, tr));
+  const tb = h("tbody", null, null, t);
+  for (const r of rows) { const row = h("tr", null, null, tb); r.forEach(c => h("td", null, c, row)); }
+}
+
+// ---- words: everything the page says, in English and Ukrainian.
+// Company names, tickers, quarter labels and "GAAP" are data and stay as they are.
+const plUk = (n, one, few, many) => n % 10 === 1 && n % 100 !== 11 ? one : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14) ? few : many;
+const S = {
+  en: {
+    topic: "· growth regime", title: "growth regime", asof: d => `as of ${d}`, table: "Table", reported: "reported", consensus: "consensus",
+    analysts: n => `${n} analyst${n === 1 ? "" : "s"}`, span: (a, b) => `${a} to ${b}`, flag: { up: "ramp-up", down: "slowdown" },
+    kinds: { reported: "reported", consensus: "consensus", consensus_fy: "consensus, fiscal year", consensus_gaap: "consensus, GAAP", snap_adjusted: "consensus, adjusted", snap_gaap: "consensus, GAAP, second source" },
+    cards: {
+      rev: ["Revenue growth, year on year, by quarter", "Reported quarters from the filings, then consensus. The grey range is where growth is expected to sit: the median of the eight quarters before, give or take a threshold. A line outside it is a break."],
+      eps: ["EPS growth, year on year, one basis per line", b => "Twelve-month GAAP diluted EPS from the filings, continued by the GAAP consensus for each fiscal year. " + (b === "adjusted"
+        ? "Adjusted consensus EPS is drawn only against adjusted consensus, so no line crosses from one accounting basis to the other."
+        : "A second consensus source, also GAAP, is drawn against itself as a cross-check.")],
+      drv: ["What moved EPS, by fiscal year", "GAAP EPS growth split into revenue, net margin and share count, in log points (close to percent for small moves). The dot is the sum."],
+      rvn: ["Estimate revisions", "Today's mean EPS estimate against what the same vendor file says it was 7 to 90 days ago."],
+    },
+    latest: "latest reported", leaves: l => `consensus leaves the range, ${l}`, offScale: (v, l) => `off the scale: ${v} in ${l}`,
+    tipRevenue: v => `revenue ${v}`, tipExpected: (a, b) => `expected ${a} to ${b}`, tipSince: (w, run) => `: outside, ${w} since ${run}`, tipOnce: ": outside, one period only",
+    tipGap: (g, l) => `${g} points against ${l}`, thin: "too few analysts to judge", tipRange: (a, b) => `range of estimates ${a} to ${b}`,
+    lgRev: ["reported", "consensus (dots: fiscal years)", "lowest to highest estimate", "expected range", "latest reported growth", "break begins (points up: ramp-up, down: slowdown)", "too few analysts to judge"],
+    thRev: ["Quarter", "Ends", "", "Revenue", "Growth", "vs latest", "Expected", "Estimates", "Break"], notJudged: "not judged", once: "outside once",
+    ttm: "GAAP, twelve months", epsLine: (b, v) => `${b === "adjusted" ? "adjusted" : "GAAP"} EPS ${v}`,
+    lgEps: b => ["GAAP, reported, twelve months", "GAAP, consensus by fiscal year", b === "gaap" ? "GAAP consensus, second source" : "adjusted consensus, against adjusted consensus", "thin: too few analysts, or fewer than half the first year's"],
+    naive: (list, a, b) => `The splice this chart refuses to draw: the estimates vendor's own growth field reads ${list} for ${a} to ${b}. That is an adjusted estimate over a GAAP year-ago figure, a ramp-up that exists only at the join.`,
+    thEps: ["Period", "Ends", "", "EPS", "Growth", "Analysts"],
+    parts: { revenue: "revenue", margin: "net margin", shares: "share count" }, sum: "sum", lgSum: "sum (EPS growth, log points)", epsGrowth: v => `GAAP EPS growth ${v}%`,
+    thDrv: ["Fiscal year", "", "Revenue", "Net margin", "Share count", "Sum", "EPS growth"],
+    thRvn: ["Period", "Estimate now", "vs 7 days", "vs 30 days", "vs 60 days", "vs 90 days"], noRvn: "No saved revisions file was given.",
+    refused: { copied: "not read: its history is the previous quarter's, to the cent: the vendor copied it", no_history: "not read: no history in the file", off_snapshot: "not read: today's estimate is outside the consensus range, so the vendor is on another basis or analyst set" },
+    srcRep: d => `Reported: SEC filings to the quarter ended ${d}.`, srcCons: d => ` Consensus: mean of analyst estimates as of ${d}.`, srcGaap: d => ` GAAP consensus as of ${d}.`,
+    srcRvn: d => `Vendor estimates file saved ${d}.`, tail: " Personal analysis, not investment advice.",
+    aria: { rev: "Revenue growth by quarter, reported and consensus", eps: "EPS growth, reported and consensus", drv: "EPS growth by fiscal year, split into revenue, margin and share count" },
+    foot: (R, L, src, basis, a) => [
+      `The rule: a quarter is outside the expected range when its growth is further from the median of the ${R.window} quarters before it than ${R.floor_pp} points or ${R.rel_pct}% of that median, whichever is larger. A break begins at the first of ${R.confirm} periods in a row outside on the same side; the latest reported quarter counts alone, as unconfirmed. For consensus the median is frozen at the last ${R.window} reported quarters, and a period with fewer than ${R.min_analysts} estimates is not judged.`,
+      `Against the latest reported quarter (${L.label}, ${f1(L.g)}): consensus turns at the first of ${R.confirm} periods in a row more than ${n1(L.thr)} points away from it on the same side.`,
+      `Reported: SEC company facts (10-K, 10-Q), through the quarter ended ${D.last_reported}. A fourth quarter is the fiscal year less the nine months before it.`,
+      `Consensus revenue and EPS (${basis === "adjusted" ? "adjusted" : "GAAP"}): ${src.snapshot || "a saved analyst-estimates file"}, retrieved ${a.consensus}. The first four consensus quarters are measured against reported quarters, later ones against consensus.`,
+      `GAAP consensus (net income, EPS, and the share count their ratio implies): ${src.page || "a saved forecast page"}, quote date ${a.page}.`,
+      a.revisions && `Revisions: ${src.revisions || "a saved vendor estimates file"}, saved ${a.revisions}.`,
+    ],
+  },
+  uk: {
+    topic: "· режим зростання", title: "режим зростання", asof: d => `станом на ${d}`, table: "Таблиця", reported: "факт", consensus: "консенсус",
+    analysts: n => `${n} ${plUk(n, "аналітик", "аналітики", "аналітиків")}`, span: (a, b) => `${a}–${b}`, flag: { up: "прискорення", down: "сповільнення" },
+    kinds: { reported: "факт", consensus: "консенсус", consensus_fy: "консенсус, фінансовий рік", consensus_gaap: "консенсус, GAAP", snap_adjusted: "консенсус, скоригований", snap_gaap: "консенсус, GAAP, друге джерело" },
+    cards: {
+      rev: ["Зростання виручки, рік до року, поквартально", "Квартали зі звітності, далі консенсус. Сіра смуга показує, де очікується зростання: медіана восьми попередніх кварталів плюс-мінус поріг. Лінія поза смугою означає злам."],
+      eps: ["Зростання EPS, рік до року: одна облікова база на лінію", b => "EPS за GAAP (розводнений, за дванадцять місяців) зі звітності, далі консенсус за GAAP для кожного фінансового року. " + (b === "adjusted"
+        ? "Скоригований консенсус EPS порівнюється лише зі скоригованим консенсусом, тож жодна лінія не переходить з однієї облікової бази на іншу."
+        : "Друге джерело консенсусу, теж за GAAP, порівнюється саме з собою як перехресна перевірка.")],
+      drv: ["Що рухало EPS, за фінансовими роками", "Зростання EPS за GAAP, розкладене на виручку, чисту маржу та кількість акцій, у логарифмічних пунктах (для малих змін близько до відсотків). Крапка показує суму."],
+      rvn: ["Перегляди оцінок", "Сьогоднішня середня оцінка EPS проти того, якою вона була 7–90 днів тому за тим самим файлом постачальника."],
+    },
+    latest: "останній факт", leaves: l => `консенсус виходить із діапазону, ${l}`, offScale: (v, l) => `поза шкалою: ${v} у ${l}`,
+    tipRevenue: v => `виручка ${v}`, tipExpected: (a, b) => `очікувано ${a}–${b}`, tipSince: (w, run) => `: поза діапазоном, ${w} з ${run}`, tipOnce: ": поза діапазоном, лише один період",
+    tipGap: (g, l) => `${g} в.п. проти ${l}`, thin: "замало аналітиків для висновку", tipRange: (a, b) => `діапазон оцінок ${a}–${b}`,
+    lgRev: ["факт", "консенсус (крапки: фінансові роки)", "від найнижчої до найвищої оцінки", "очікуваний діапазон", "останнє фактичне зростання", "початок зламу (вгору: прискорення, вниз: сповільнення)", "замало аналітиків для висновку"],
+    thRev: ["Квартал", "Кінець", "", "Виручка", "Зростання", "до останнього факту", "Очікувано", "Оцінки", "Злам"], notJudged: "без висновку", once: "раз поза діапазоном",
+    ttm: "GAAP, дванадцять місяців", epsLine: (b, v) => `${b === "adjusted" ? "скоригований EPS" : "EPS за GAAP"} ${v}`,
+    lgEps: b => ["GAAP, факт, дванадцять місяців", "GAAP, консенсус за фінансовими роками", b === "gaap" ? "консенсус GAAP, друге джерело" : "скоригований консенсус, до скоригованого консенсусу", "ненадійно: замало аналітиків або менше половини від першого року"],
+    naive: (list, a, b) => `Стик, якого цей графік не малює: поле зростання самого постачальника оцінок показує ${list} для ${a}–${b}. Це скоригована оцінка, поділена на торішній показник за GAAP: прискорення, яке існує лише на стику.`,
+    thEps: ["Період", "Кінець", "", "EPS", "Зростання", "Аналітики"],
+    parts: { revenue: "виручка", margin: "чиста маржа", shares: "кількість акцій" }, sum: "сума", lgSum: "сума (зростання EPS, лог. пункти)", epsGrowth: v => `зростання EPS за GAAP ${v}%`,
+    thDrv: ["Фінансовий рік", "", "Виручка", "Чиста маржа", "Кількість акцій", "Сума", "Зростання EPS"],
+    thRvn: ["Період", "Оцінка зараз", "до 7 днів тому", "до 30 днів тому", "до 60 днів тому", "до 90 днів тому"], noRvn: "Файл із переглядами оцінок не задано.",
+    refused: { copied: "не читаємо: історія до цента повторює попередній квартал, постачальник її скопіював", no_history: "не читаємо: у файлі немає історії", off_snapshot: "не читаємо: сьогоднішня оцінка поза діапазоном консенсусу, тож у постачальника інша база або інший набір аналітиків" },
+    srcRep: d => `Факт: звітність SEC до кварталу, що закінчився ${d}.`, srcCons: d => ` Консенсус: середнє оцінок аналітиків станом на ${d}.`, srcGaap: d => ` Консенсус за GAAP станом на ${d}.`,
+    srcRvn: d => `Файл оцінок постачальника збережено ${d}.`, tail: " Особистий аналіз, не інвестиційна порада.",
+    aria: { rev: "Зростання виручки за кварталами, факт і консенсус", eps: "Зростання EPS, факт і консенсус", drv: "Зростання EPS за фінансовими роками: виручка, маржа, кількість акцій" },
+    foot: (R, L, src, basis, a) => [
+      `Правило: квартал поза очікуваним діапазоном, якщо його зростання відхиляється від медіани ${R.window} попередніх кварталів більше ніж на ${n1(R.floor_pp)} в.п. або ${R.rel_pct}% цієї медіани (що більше). Злам починається з першого з ${R.confirm} періодів поспіль поза діапазоном з одного боку; останній фактичний квартал рахується й сам, як непідтверджений. Для консенсусу медіану зафіксовано на останніх ${R.window} фактичних кварталах, а період із менш ніж ${R.min_analysts} оцінками не оцінюється.`,
+      `Проти останнього фактичного кварталу (${L.label}, ${f1(L.g)}): консенсус розвертається з першого з ${R.confirm} періодів поспіль, що відхиляються від нього більше ніж на ${n1(L.thr)} в.п. в один бік.`,
+      `Факт: звітність SEC (10-K, 10-Q) до кварталу, що закінчився ${D.last_reported}. Четвертий квартал обчислено як фінансовий рік мінус попередні дев'ять місяців.`,
+      `Консенсус виручки та EPS (${basis === "adjusted" ? "скоригований" : "GAAP"}): ${src.snapshot || "збережений файл оцінок аналітиків"}, отримано ${a.consensus}. Перші чотири квартали консенсусу порівнюються з фактичними, наступні з консенсусом.`,
+      `Консенсус за GAAP (чистий прибуток, EPS і кількість акцій, що випливає з їх співвідношення): ${src.page || "збережена сторінка прогнозів"}, дата котирування ${a.page}.`,
+      a.revisions && `Перегляди: ${src.revisions || "збережений файл оцінок постачальника"}, збережено ${a.revisions}.`,
+    ],
+  },
+};
+let W;
+
+function brand(host, right) {
+  if (D.logo) { const img = h("img", null, null, host); img.src = D.logo; img.alt = ""; }
+  h("span", "name", D.name, host); h("span", "chip", D.ticker, host);
+  if (right) h("span", "asof", right, host);
+}
+
+function header() {
+  const text = D.text[LANG];
+  brand($("who"));
+  h("span", "topic", W.topic, $("who"));
+  document.title = `${D.ticker} ${W.title}`;
+  $("headline").textContent = text.headline;
+  for (const t of text.tiles) { const d = h("div", "tile", null, $("tiles")); h("div", "label", t.label, d); h("div", "value", t.value, d); t.note.forEach(n => h("div", "note", n, d)); }
+  const rep = W.srcRep(D.last_reported), cons = W.srcCons(D.asof.consensus), gaap = W.srcGaap(D.asof.page);
+  const src = { rev: rep + cons, eps: rep + cons + gaap, drv: rep + gaap, rvn: D.asof.revisions ? W.srcRvn(D.asof.revisions) : "" };
+  for (const card of document.querySelectorAll("section.card")) {
+    const k = card.dataset.card, who = h("div", "who"), [title, sub] = W.cards[k], date = k === "rvn" ? D.asof.revisions : D.asof.consensus;
+    brand(who, date && W.asof(date));
+    card.prepend(who);
+    card.querySelector("h2").textContent = title;
+    card.querySelector(".sub").textContent = typeof sub === "function" ? sub(D.eps.basis) : sub;
+    const det = card.querySelector("details");
+    if (det) det.querySelector("summary").textContent = W.table;
+    card.insertBefore(h("p", "src", src[k] + W.tail), det);
+  }
+}
+
+function revenue() {
+  const lastX = T(D.last_reported), R = D.revenue, rep = R.reported.filter(shown), cons = R.consensus, bey = R.beyond, all = rep.concat(cons, bey);
+  const vals = all.flatMap(p => [p.g, p.lo ?? p.g, p.hi ?? p.g, ...(p.band || [])]);
+  const x0 = T(rep[0].d) - 40 * 864e5, x1 = T(all[all.length - 1].d) + 60 * 864e5;
+  const f = frame($("c-rev"), { x0, x1, y0: Math.min(...vals) - 1, y1: Math.max(...vals) + 2, label: W.aria.rev });
+  yearTicks(f, x0, x1);
+  area(f, all.filter(p => p.band), p => p.band[0], p => p.band[1], "var(--band)");
+  const join = rep[rep.length - 1];
+  area(f, [{ d: join.d, lo: join.g, hi: join.g }].concat(cons), p => p.lo, p => p.hi, "color-mix(in srgb, var(--s1) 13%, transparent)");
+  divider(f, f.X(lastX), W.reported, W.consensus);
+  const yL = f.Y(R.latest.g);
+  el("line", { x1: f.X(lastX), x2: f.W - f.m.r, y1: yL, y2: yL, stroke: "var(--ink2)", "stroke-width": 1 }, f.svg);
+  el("text", { x: f.W - f.m.r, y: yL - 6, "text-anchor": "end", class: "note" }, f.svg).textContent = W.latest;
+  line(f, rep, "var(--s1)");
+  line(f, [join].concat(cons, bey), "var(--s1)", true);
+  bey.forEach(p => dot(f, p, "var(--s1)", p.thin));
+  rep.filter(p => p.onset).forEach(p => breakMark(f, p, p.label));
+  const exit = cons.concat(bey).find(p => p.onset);
+  // A break called in the first consensus periods sits beside the last reported point: its label goes to the right and the value to the left.
+  const tight = exit && f.X(T(exit.d)) - f.X(T(join.d)) < 90;
+  if (exit) breakMark(f, exit, W.leaves(exit.label), tight);
+  dot(f, join, "var(--s1)");
+  el("text", tight ? { x: f.X(T(join.d)) - 10, y: f.Y(join.g) + (exit.flag === "up" ? 18 : -10), "text-anchor": "end", class: "strong" } : { x: f.X(T(join.d)) + 9, y: f.Y(join.g) - 8, class: "strong" }, f.svg).textContent = f1(join.g);
+  const end = all[all.length - 1];
+  el("text", { x: f.X(T(end.d)) + 10, y: f.Y(end.g) + 4, class: "strong" }, f.svg).textContent = f1(end.g);
+  hover(f, all, here => {
+    const p = here[0], more = [W.tipRevenue(money(p.level))];
+    if (p.band) more.push(W.tipExpected(f1(p.band[0]), f1(p.band[1])) + (p.flag ? (p.run ? W.tipSince(W.flag[p.flag], p.run) : W.tipOnce) : ""));
+    if (p.gap != null) more.push(W.tipGap(sg(p.gap), R.latest.label));
+    if (p.thin) more.push(W.thin);
+    if (p.lo != null) more.push(W.tipRange(f1(p.lo), f1(p.hi)));
+    if (p.n) more.push(W.analysts(p.n));
+    return [`${p.label} · ${p.d}`, [{ name: W.kinds[p.kind], value: f1(p.g), color: "var(--s1)", dash: p.kind !== "reported" }], more];
+  });
+  const L = W.lgRev;
+  legend("lg-rev", [
+    { kind: "line", color: "var(--s1)", text: L[0] }, { kind: "line", color: "var(--s1)", dash: true, text: L[1] },
+    { kind: "rect", color: "var(--s1)", opacity: 0.2, text: L[2] }, { kind: "rect", color: "var(--band)", text: L[3] }, { kind: "line", color: "var(--ink2)", w: 1, text: L[4] },
+    { kind: "break", text: L[5] }, { kind: "dot", color: "var(--s1)", hollow: true, text: L[6] },
+  ]);
+  table("t-rev", W.thRev, all.map(p => [
+    p.label, p.d, W.kinds[p.kind], money(p.level), f1(p.g), p.gap != null ? sg(p.gap) : "", p.band ? W.span(f1(p.band[0]), f1(p.band[1])) : "", p.lo != null ? W.span(f1(p.lo), f1(p.hi)) : "",
+    p.thin ? W.notJudged : p.flag ? (p.run ? W.flag[p.flag] : W.once) : ""]));
+}
+
+function eps() {
+  const lastX = T(D.last_reported), E = D.eps, rep = E.reported.filter(shown), all = rep.concat(E.gaap_fc, E.adj_fc);
+  const x0 = T(rep[0].d) - 40 * 864e5, x1 = Math.max(...all.map(p => T(p.d))) + 60 * 864e5;
+  const peak = all.reduce((a, b) => b.g > a.g ? b : a), CAP = 90;
+  const f = frame($("c-eps"), { x0, x1, y0: Math.min(...all.map(p => p.g)) - 3, y1: Math.min(peak.g + 3, CAP), label: W.aria.eps });
+  yearTicks(f, x0, x1);
+  divider(f, f.X(lastX), W.reported, W.consensus);
+  if (peak.g > f.y1) el("text", { x: f.W - f.m.r, y: f.m.t + 15, "text-anchor": "end", class: "note" }, f.svg).textContent = W.offScale(f1(peak.g), peak.label);
+  const join = rep[rep.length - 1];
+  line(f, rep, "var(--s1)");
+  line(f, [join].concat(E.gaap_fc), "var(--s1)", true);
+  line(f, E.adj_fc, "var(--s2)", true);
+  E.gaap_fc.forEach(p => dot(f, p, "var(--s1)"));
+  E.adj_fc.forEach(p => dot(f, p, "var(--s2)", p.thin));
+  dot(f, join, "var(--s1)");
+  if (join.g <= f.y1) el("text", { x: f.X(T(join.d)) - 9, y: f.Y(join.g) + 16, class: "strong", "text-anchor": "end" }, f.svg).textContent = f1(join.g);
+  const g = E.gaap_fc[E.gaap_fc.length - 1], a = E.adj_fc[E.adj_fc.length - 1];
+  if (g) el("text", { x: f.X(T(g.d)) + 4, y: f.Y(g.g) + 20, class: "note", "text-anchor": "middle" }, f.svg).textContent = `GAAP ${f1(g.g)}`;
+  if (a) el("text", { x: f.X(T(a.d)) + 10, y: f.Y(a.g) + 4, class: "note" }, f.svg).textContent = W.analysts(a.n);
+  hover(f, all, here => [
+    `${here[0].label} · ${here[0].d}`,
+    here.map(p => ({ name: p.kind === "reported" ? W.ttm : W.kinds[p.kind], value: f1(p.g), color: p.series === "snap" ? "var(--s2)" : "var(--s1)", dash: p.kind !== "reported" })),
+    here.map(p => W.epsLine(p.series === "snap" ? E.basis : "gaap", n2(p.level)) + (p.n ? `, ${W.analysts(p.n)}` : "")),
+  ]);
+  const L = W.lgEps(E.basis);
+  legend("lg-eps", [
+    { kind: "line", color: "var(--s1)", text: L[0] }, { kind: "line", color: "var(--s1)", dash: true, text: L[1] },
+    { kind: "line", color: "var(--s2)", dash: true, text: L[2] }, { kind: "dot", color: "var(--s2)", hollow: true, text: L[3] },
+  ]);
+  const n = E.naive.filter(x => x.yoy > 25);
+  $("naive").hidden = !n.length;
+  if (n.length) $("naive").textContent = W.naive(n.map(x => "+" + x.yoy.toFixed(0) + "%").join(", "), n[0].label, n[n.length - 1].label);
+  table("t-eps", W.thEps, all.map(p => [p.label, p.d, p.kind === "reported" ? W.ttm : W.kinds[p.kind], n2(p.level), f1(p.g), p.n ?? ""]));
+}
+
+function drivers() {
+  const rows = D.drivers, parts = [["revenue", "var(--s1)"], ["margin", "var(--s2)"], ["shares", "var(--s3)"]];
+  let lo = 0, hi = 0;
+  for (const r of rows) { let p = 0, n = 0; for (const [k] of parts) r[k] >= 0 ? p += r[k] : n += r[k]; hi = Math.max(hi, p); lo = Math.min(lo, n); }
+  const f = frame($("c-drv"), { h: 320, x0: -0.6, x1: rows.length - 0.4, y0: lo - 2, y1: hi + 2, unit: "", label: W.aria.drv });
+  const bw = 24, firstFc = rows.findIndex(r => r.kind !== "reported");
+  if (firstFc > 0) divider(f, f.X(firstFc - 0.5), W.reported, W.consensus);
+  rows.forEach((r, i) => {
+    const cx = f.X(i), fc = r.kind !== "reported";
+    el("text", { x: cx, y: f.H - 8, "text-anchor": "middle" }, f.svg).textContent = r.fy;
+    let up = 0, dn = 0;
+    const segs = parts.map(([k, color]) => { const v = r[k], a = v >= 0 ? up : dn; if (v >= 0) up += v; else dn += v; return { color, a, b: a + v }; });
+    for (const s of segs) {
+      const yA = f.Y(s.a), yB = f.Y(s.b), top = Math.min(yA, yB), ht = Math.abs(yA - yB) - 2;
+      if (ht <= 0.5) continue;
+      const outer = s.b === up || s.b === dn, y = s.b >= s.a ? top : top + 2, r4 = outer ? Math.min(4, ht / 2) : 0, x = cx - bw / 2;
+      const d = s.b >= s.a
+        ? `M${x} ${y + ht}V${y + r4}Q${x} ${y} ${x + r4} ${y}H${x + bw - r4}Q${x + bw} ${y} ${x + bw} ${y + r4}V${y + ht}Z`
+        : `M${x} ${y}V${y + ht - r4}Q${x} ${y + ht} ${x + r4} ${y + ht}H${x + bw - r4}Q${x + bw} ${y + ht} ${x + bw} ${y + ht - r4}V${y}Z`;
+      el("path", { d, fill: s.color, opacity: fc ? 0.6 : 1 }, f.svg);
+    }
+    el("circle", { cx, cy: f.Y(r.total), r: 4.5, fill: "var(--ink)", stroke: "var(--surface)", "stroke-width": 2 }, f.svg);
+    const hit = el("rect", { x: cx - 22, y: f.m.t, width: 44, height: f.H - f.m.t - f.m.b, fill: "transparent" }, f.svg);
+    hit.addEventListener("pointermove", ev => showTip(ev, `${r.fy} · ${W.kinds[r.kind]}`,
+      parts.map(([k, color]) => ({ name: W.parts[k], value: sg(r[k]), color })).concat([{ name: W.sum, value: sg(r.total), color: "var(--ink)" }]),
+      [W.epsGrowth(sg(r.eps_growth))]));
+    hit.addEventListener("pointerleave", hideTip);
+  });
+  legend("lg-drv", parts.map(([k, color]) => ({ kind: "rect", color, text: W.parts[k] })).concat([{ kind: "dot", color: "var(--ink)", text: W.lgSum }]));
+  table("t-drv", W.thDrv, rows.map(r => [r.fy, W.kinds[r.kind], sg(r.revenue), sg(r.margin), sg(r.shares), sg(r.total), sg(r.eps_growth) + "%"]));
+}
+
+function revisions() {
+  if (!D.revisions.length) { $("t-rvn").textContent = W.noRvn; return; }
+  const t = h("table", null, null, $("t-rvn")), tr = h("tr", null, null, h("thead", null, null, t));
+  W.thRvn.forEach(c => h("th", null, c, tr));
+  const tb = h("tbody", null, null, t);
+  for (const r of D.revisions) {
+    const row = h("tr", null, null, tb); h("td", null, r.label, row); h("td", null, n2(r.now), row);
+    if (r.refused) { const c = h("td", "refused", W.refused[r.refused], row); c.colSpan = 4; }
+    else ["7", "30", "60", "90"].forEach(d => h("td", null, sg(r.was[d]) + "%", row));
+  }
+}
+
+function footnotes() {
+  const ul = h("ul", null, null, $("foot"));
+  W.foot(D.rule, D.revenue.latest, D.sources, D.eps.basis, D.asof).filter(Boolean).concat(D.text[LANG].notes).forEach(n => h("li", null, n, ul));
+}
+
+// ---- language: the page is drawn again in the language chosen; English is the default.
+function render(lang) {
+  LANG = S[lang] ? lang : "en"; W = S[LANG];
+  document.documentElement.lang = LANG;
+  hideTip();
+  for (const id of ["who", "tiles", "lg-rev", "c-rev", "t-rev", "lg-eps", "c-eps", "t-eps", "lg-drv", "c-drv", "t-drv", "t-rvn", "foot"]) $(id).replaceChildren();
+  document.querySelectorAll("section.card > .who, section.card > .src").forEach(e => e.remove());
+  document.querySelectorAll(".lang button").forEach(b => b.setAttribute("aria-pressed", b.dataset.lang === LANG));
+  header(); revenue(); eps(); drivers(); revisions(); footnotes();
+}
+function stored() { try { return localStorage.getItem("growth-regime-lang"); } catch { return null; } }
+document.querySelectorAll(".lang button").forEach(b => b.addEventListener("click", () => {
+  render(b.dataset.lang);
+  try { localStorage.setItem("growth-regime-lang", LANG); } catch {}
+  try { history.replaceState(null, "", "#" + LANG); } catch {}
+}));
+render(location.hash.slice(1) || stored() || "en");
+</script>
+</body>
+</html>
